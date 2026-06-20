@@ -1,0 +1,174 @@
+/* Arcson Bridge - Paleta azul */
+:root {
+  --azul-900: #0a1a3a;
+  --azul-800: #0f2a5c;
+  --azul-700: #14407f;
+  --azul-600: #1e5fb4;
+  --azul-500: #2d7fe0;
+  --azul-400: #5aa3f5;
+  --azul-100: #e6f0ff;
+  --blanco: #ffffff;
+  --texto: #0a1a3a;
+  --gris: #6b7a99;
+  --verde: #22c55e;
+  --rojo: #ef4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--azul-900) 0%, var(--azul-700) 50%, var(--azul-600) 100%);
+  color: var(--texto);
+  padding: 2rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+body::before {
+  content: 'ARCSON BRIDGE';
+  position: absolute;
+  top: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--blanco);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.4em;
+  opacity: 0.95;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* Estado de conexión */
+#estado {
+  margin-top: 4.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.6rem 1.4rem 0.6rem 2rem;
+  background: var(--blanco);
+  color: var(--rojo);
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+  display: inline-block;
+  position: relative;
+}
+
+#estado::before {
+  content: '';
+  position: absolute;
+  left: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Card principal */
+h1 {
+  background: var(--blanco);
+  color: var(--azul-800);
+  padding: 1.5rem 2.5rem;
+  border-radius: 16px 16px 0 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  border-bottom: 4px solid var(--azul-500);
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+  margin-top: 1rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+/* Etiquetas de sensores */
+body > p:nth-of-type(odd) {
+  background: var(--blanco);
+  width: 100%;
+  max-width: 480px;
+  padding: 1rem 2rem 0.3rem;
+  color: var(--gris);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Valores de sensores */
+#sensormovimiento,
+#sensorcerrojo {
+  background: var(--blanco);
+  width: 100%;
+  max-width: 480px;
+  padding: 0.4rem 2rem 1.2rem;
+  color: var(--azul-700);
+  font-size: 1.4rem;
+  font-weight: 700;
+  border-bottom: 1px solid var(--azul-100);
+  min-height: 2.6rem;
+}
+
+#sensorcerrojo {
+  border-bottom: none;
+  border-radius: 0 0 16px 16px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+}
+
+/* Botones */
+button {
+  background: linear-gradient(135deg, var(--azul-600), var(--azul-500));
+  color: var(--blanco);
+  border: none;
+  padding: 0.9rem 2.5rem;
+  margin: 0.5rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  box-shadow: 0 6px 20px rgba(30, 95, 180, 0.4);
+  min-width: 140px;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(30, 95, 180, 0.55);
+  filter: brightness(1.1);
+}
+
+button:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+button:nth-of-type(2) {
+  background: linear-gradient(135deg, var(--azul-800), var(--azul-700));
+  box-shadow: 0 6px 20px rgba(15, 42, 92, 0.5);
+}
+
+@media (max-width: 500px) {
+  h1 { font-size: 1.2rem; padding: 1.2rem; }
+  button { min-width: 120px; padding: 0.8rem 1.5rem; font-size: 0.9rem; }
+  body::before { font-size: 1.1rem; }
+}
