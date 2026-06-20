@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <h2 id="estado">Desconectado</h2>
+    <h1>Datos del server</h1>
+    <p>Sensor movimiento</p>
+    <p id="sensormovimiento"></p>
+    <p>Sensor cerrojo</p>
+    <p id="sensorcerrojo"></p>
+    <button onclick="abrir()">Abrir</button>
+    <button onclick="cerrar()">Cerrar</button>
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script type="module">
+        const socket = io("ws://localhost:3000")
+        socket.on("connect",()=>{
+            const estado = document.getElementById('estado')
+            estado.innerText = 'conectado'
+        })
+        socket.on("movimiento",(msg)=>{
+            const sensorder = document.getElementById('sensormovimiento')
+            sensorder.innerText = msg
+        })
+        socket.on("cerrojo",(msg)=>{
+            const sensorder = document.getElementById('sensorcerrojo')
+            sensorder.innerText = msg
+        })
+        window.abrir=()=>{
+            socket.emit('abrir',true)
+        }
+        window.cerrar=()=>{
+            socket.emit('cerrar',true)
+        }
+    </script>
+</body>
+</html>
