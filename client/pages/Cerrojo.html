@@ -6,15 +6,15 @@
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Bridge Arcson Security</title>
+    <title>Cerrojo - Bridge Arcson</title>
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- CSS -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
 
-    <link rel="icon" href="src/Logos/FaviconBridgeArcson.png" type="image/png">
+    <link rel="icon" href="../src/Logos/FaviconBridgeArcson.png" type="image/png">
 
 </head>
 
@@ -27,7 +27,7 @@
 
         <div class="logo-container">
 
-            <img src="src/Logos/LogoBridgeArcson.png" 
+            <img src="../src/Logos/LogoBridgeArcson.png" 
                  alt="Bridge Arcson Logo"
                  class="logo-image">
 
@@ -58,7 +58,7 @@
             <ul>
 
                 <li>
-                    <a href="#" class="active">
+                    <a href="../index.html">
                         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                         Panel de control
                     </a>
@@ -72,14 +72,14 @@
                 </li>
 
                 <li>
-                    <a href="pages/Cerrojo.html">
+                    <a href="Cerrojo.html" class="active">
                         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                         Cerrojo
                     </a>
                 </li>
 
                 <li>
-                    <a href="pages/Sensores.html">
+                    <a href="Sensores.html">
                         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
                         Sensores
                     </a>
@@ -96,7 +96,7 @@
             <ul>
 
                 <li>
-                    <a href="pages/Productos.html">
+                    <a href="Productos.html">
                         <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
                         Productos
                     </a>
@@ -175,11 +175,11 @@
             <div class="topbar-left">
 
                 <h1>
-                    Centro de Monitoreo
+                    Cerrojo
                 </h1>
 
                 <span class="breadcrumb">
-                    / Panel de control
+                    / Control de acceso
                 </span>
 
             </div>
@@ -240,66 +240,21 @@
 
         <section class="cards-container">
 
-            <div class="status-card" id="card-sensor">
-
-                <h3>
-                    Estado del Sensor PIR
-                </h3>
-
-                <p class="status danger-status" id="status-sensor">
-                    Desactivado
-                </p>
-
-
-            </div>
-
             <div class="status-card" id="card-cerrojo">
 
                 <h3>
                     Estado del Cerrojo
                 </h3>
 
-                <p class="status danger-status" id="status-cerrojo">
+                <p class="status danger-status" id="status-cerrojo-page">
                     Abierto
                 </p>
 
-            </div>
-
-            <div class="status-card">
-
-                <h3>
-                    Estado del Servidor
-                </h3>
-
-                <p class="status online-status" id="online-status">
-                    Offline
-                </p>
-
-                <div class="card-spacer"></div>
-
-            </div>
-
-        </section>
-
-        <!-- CAMARA -->
-
-        <section class="camera-section" id="camaras">
-
-            <div class="section-header">
-
-                <h2>
-                    Cámara Principal
-                </h2>
-
-                <span class="live-badge">
-                    EN VIVO
-                </span>
-
-            </div>
-
-            <div class="camera-box">
-
-                STREAM DE VIDEO
+                <label class="toggle-switch">
+                    <input type="checkbox" class="toggle-input" id="toggle-cerrojo-page">
+                    <span class="toggle-slider"></span>
+                    <span class="toggle-label" id="label-cerrojo-page">Abierto</span>
+                </label>
 
             </div>
 
@@ -310,46 +265,36 @@
     <!-- SOCKET.IO -->
     <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 
-    <!-- SCRIPT FECHA Y HORA -->
+    <!-- SCRIPTS -->
 
-    <script type="module">
+    <script>
+
         const socket = io("ws://localhost:3000");
 
         socket.on("connect",()=>{
-            document.getElementById('online-status').style.color = '#00FF9C';
-            document.getElementById('online-status').innerText= "Online"
+            document.querySelector('.live-dot').style.background = '#00FF9C';
+            document.querySelector('.live-dot').style.boxShadow = '0 0 10px #00FF9C';
         });
 
         socket.on("disconnect",()=>{
-            document.getElementById('online-status').style.color = '#FF3B3B';
-            document.getElementById('online-status').innerText= "Offline"
-        });
-
-        socket.on("movimiento",(msg)=>{
-            const status = document.getElementById('status-sensor');
-            const label = document.getElementById('label-sensor');
-            if(msg == 'ON'){
-                status.textContent = 'Activado';
-                status.className = 'status active-status';
-                label.textContent = 'Activado';
-            } else {
-                status.textContent = 'Desactivado';
-                status.className = 'status danger-status';
-                label.textContent = 'Desactivado';
-            }
+            document.querySelector('.live-dot').style.background = '#FF3B3B';
+            document.querySelector('.live-dot').style.boxShadow = '0 0 10px #FF3B3B';
         });
 
         socket.on("cerrojo",(msg)=>{
-            const status = document.getElementById('status-cerrojo');
-            const label = document.getElementById('label-cerrojo');
-            if(msg == 'cerrado'){
+            const status = document.getElementById('status-cerrojo-page');
+            const label = document.getElementById('label-cerrojo-page');
+            const toggle = document.getElementById('toggle-cerrojo-page');
+            if(msg === 'Cerrado' || msg === 'true'){
                 status.textContent = 'Cerrado';
                 status.className = 'status active-status';
                 label.textContent = 'Cerrado';
+                toggle.checked = true;
             } else {
                 status.textContent = 'Abierto';
                 status.className = 'status danger-status';
                 label.textContent = 'Abierto';
+                toggle.checked = false;
             }
         });
 
@@ -379,25 +324,10 @@
 
         updateClock();
 
-        // TOGGLE SENSOR
-        document.getElementById('toggle-sensor').addEventListener('change', function(){
-            const status = document.getElementById('status-sensor');
-            const label = document.getElementById('label-sensor');
-            if(this.checked){
-                status.textContent = 'Activado';
-                status.className = 'status active-status';
-                label.textContent = 'Activado';
-            } else {
-                status.textContent = 'Desactivado';
-                status.className = 'status danger-status';
-                label.textContent = 'Desactivado';
-            }
-        });
-
         // TOGGLE CERROJO
-        document.getElementById('toggle-cerrojo').addEventListener('change', function(){
-            const status = document.getElementById('status-cerrojo');
-            const label = document.getElementById('label-cerrojo');
+        document.getElementById('toggle-cerrojo-page').addEventListener('change', function(){
+            const status = document.getElementById('status-cerrojo-page');
+            const label = document.getElementById('label-cerrojo-page');
             if(this.checked){
                 status.textContent = 'Cerrado';
                 status.className = 'status active-status';
