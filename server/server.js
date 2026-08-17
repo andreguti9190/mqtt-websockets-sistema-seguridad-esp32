@@ -50,7 +50,7 @@ clientmqtt.on("message", (topic, msg) => {
     }
 });
 
-io.on('connection', (socket) => {
+io.on('connection', async (socket) => {
     const rows = await db.query(
         'SELECT nombre, estado FROM sensores'
     )
