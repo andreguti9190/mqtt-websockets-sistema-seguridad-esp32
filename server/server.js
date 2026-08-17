@@ -36,16 +36,23 @@ clientmqtt.on("connect", () => {
     console.log("subcriptos los topicos correctamente");
 });
 
-// recibiendo mensajes
-clientmqtt.on("message", (topic, msg) => {
+// recibiendo mensajes en MQTT
+clientmqtt.on("message", async (topic, msg) => {
     if (topic == "sensor/movimiento") {
-        io.emit('movimiento', msg.toString())
+        let estado = msg.toString();
+        io.emit('movimiento', estado)
+        if (estado == "ON") {
+            await db.query("UPDATE sensores SET estado = TRUE WHERE nombre = 'movimiento';")
+        } else{
+            await db.query("UPDATE sensores SET estado = FALSE WHERE nombre = 'movimiento';")
+        }
     } else if (topic == "sensor/cerrojo") {
         let estado = msg.toString()
+        io.emit('cerrojo', estado)
         if (estado == "ON") {
-            io.emit('cerrojo', 'cerrado')
+            await db.query("UPDATE sensores SET estado = TRUE WHERE nombre = 'cerrojo';")
         } else {
-            io.emit('cerrojo', 'abierto')
+            await db.query("UPDATE sensores SET estado = FALSE WHERE nombre = 'cerrojo';")
         }
     }
 });
@@ -55,25 +62,21 @@ io.on('connection', async (socket) => {
         'SELECT nombre, estado FROM sensores'
     )
     rows[0].forEach((sensor)=>{
+        console.log(sensor)
         if(sensor.nombre=="cerrojo"){
-            if(sensor.estado){ io.emit('cerrojo', 'abierto') }
-            else{ io.emit('movimiento', 'cerrado') }
+            if(sensor.estado){ io.emit('cerrojo', 'ON') }
+            else{ io.emit('cerrojo', 'OFF') }
         }
         if(sensor.nombre=="movimiento"){
-            if(sensor.estado){ io.emit('cerrojo', 'abierto') }
-            else{ io.emit('movimiento', 'cerrado') }
+            if(sensor.estado){ io.emit('movimiento', 'ON') }
+            else{ io.emit('movimiento', 'OFF') }
         }
     })
     socket.on('cerrar', () => {
-        clientmqtt.publish('actuador/cerrojo', "ON")
-        console.log('cerrado')
+        clientmqtt.publish('sensor/cerrojo', "ON")
     })
     socket.on('abrir', () => {
-        clientmqtt.publish('actuador/cerrojo', "OFF")
-        console.log('abrir')
-    })
-    socket.on('disconnect', () => {
-        console.log('Un usuario desconectado')
+        clientmqtt.publish('sensor/cerrojo', "OFF")
     })
 })
 server.listen(3000, (req, res) => {

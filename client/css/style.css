@@ -368,7 +368,7 @@ body{
 
     background:#083B3D;
 
-    color:#00FF9C;
+    color:#FF0000;
 
     padding:8px 16px;
 
@@ -381,17 +381,19 @@ body{
     letter-spacing:1px;
 }
 
+.live-system-p{
+    text-align: center;
+}
 .live-dot{
-
     width:8px;
 
     height:8px;
 
-    background:#00FF9C;
+    background:#FF0000;
 
     border-radius:50%;
 
-    box-shadow:0 0 10px #00FF9C;
+    box-shadow:0 0 10px #FF0000;
 }
 
 /* ICONS */
@@ -539,7 +541,7 @@ body{
 
 .online-status{
 
-    color:#00D9FF;
+    color:#FF0000;
 }
 
 .danger-status{
