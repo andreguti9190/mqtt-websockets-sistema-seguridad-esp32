@@ -193,12 +193,12 @@
     </main>
 
     <!-- SOCKET.IO -->
-    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+    <script src="http://192.168.0.23:3000/socket.io/socket.io.js"></script>
 
     <!-- SCRIPT FECHA Y HORA -->
 
     <script type="module">
-        const socket = io("ws://localhost:3000");
+        const socket = io("ws://192.168.0.23:3000");
 
         socket.on("connect",()=>{
             const conexion =document.getElementById('conexion');
