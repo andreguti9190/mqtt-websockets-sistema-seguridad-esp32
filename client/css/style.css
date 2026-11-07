@@ -8,9 +8,9 @@
     box-sizing:border-box;
 }
 
-/* =========================
-   BODY
-========================= */
+html{
+    scroll-behavior:smooth;
+}
 
 body{
 
@@ -21,6 +21,8 @@ body{
     color:white;
 
     display:flex;
+
+    overflow-x:hidden;
 }
 
 /* =========================
@@ -93,7 +95,7 @@ body{
 
     height:75px;
 
-    object-fit:cover;
+    object-fit:contain;
 
     margin-top:-2px;
 }
@@ -480,7 +482,9 @@ body{
         #102D57
     );
 
-    width:260px;
+    flex:1;
+
+    min-width:0;
 
     padding:25px;
 
@@ -530,6 +534,86 @@ body{
 .card-spacer{
 
     height:26px;
+}
+
+/* =========================
+   CARD ACTIONS (BOTONES)
+========================= */
+
+.card-actions{
+
+    margin-top:auto;
+
+    display:flex;
+
+    gap:10px;
+
+    flex-wrap:wrap;
+
+    padding-top:20px;
+}
+
+.card-btn{
+
+    flex:1 1 auto;
+
+    min-width:120px;
+
+    padding:12px 14px;
+
+    border-radius:12px;
+
+    font-size:14px;
+
+    font-family:inherit;
+
+    font-weight:700;
+
+    letter-spacing:0.3px;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+    display:inline-flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    gap:8px;
+}
+
+.card-btn-close{
+
+    background:#0CC0DF;
+
+    color:#051937;
+
+    border:1px solid transparent;
+}
+
+.card-btn-close:hover{
+
+    background:#00FF9C;
+
+    transform:translateY(-2px);
+}
+
+.card-btn-open{
+
+    background:transparent;
+
+    color:#FF3B3B;
+
+    border:1px solid #FF3B3B;
+}
+
+.card-btn-open:hover{
+
+    background:rgba(255,59,59,0.12);
+
+    transform:translateY(-2px);
 }
 
 /* STATUS COLORS */
@@ -729,33 +813,149 @@ body{
 
 @media(max-width:1000px){
 
+    body{
+
+        flex-direction:column;
+    }
+
     .sidebar{
 
         width:100%;
 
         height:auto;
 
+        min-height:auto;
+
         position:relative;
+
+        border-right:none;
+
+        border-bottom:2px solid #0CC0DF;
+
+        padding:0;
+    }
+
+    .logo-container{
+
+        justify-content:center;
+
+        border-bottom:1px solid rgba(255,255,255,0.08);
+
+        margin-bottom:0;
+    }
+
+    .logo-image{
+
+        width:56px;
+
+        height:56px;
+    }
+
+    .logo-text{
+
+        transform:none;
+    }
+
+    .menu-category{
+
+        display:none;
+    }
+
+    .menu{
+
+        margin-top:0;
+    }
+
+    .menu ul{
+
+        display:flex;
+
+        flex-direction:row;
+
+        justify-content:center;
+
+        overflow-x:auto;
+
+        padding:8px 16px 12px 16px;
+    }
+
+    .menu ul li{
+
+        margin-bottom:0;
+
+        flex-shrink:0;
+    }
+
+    .menu ul li a{
+
+        padding:10px 18px;
+
+        font-size:15px;
+
+        border-left:none;
+
+        border-bottom:2px solid transparent;
+    }
+
+    .menu ul li a:hover,
+    .menu ul li a.active{
+
+        border-left:none;
+
+        border-bottom:2px solid #0CC0DF;
+    }
+
+    .sidebar-footer{
+
+        display:none;
     }
 
     .main-content{
 
-        margin-left:0;
+        margin-left:auto;
+
+        margin-right:auto;
+
+        width:100%;
+
+        max-width:760px;
+
+        padding:20px;
+    }
+
+    .topbar-left{
+
+        width:100%;
+
+        justify-content:center;
+
+        text-align:center;
+    }
+
+    .section-header{
+
+        justify-content:center;
     }
 
     .cards-container{
 
         flex-direction:column;
+
+        flex-wrap:nowrap;
     }
 
     .status-card{
 
         width:100%;
+
+        min-height:auto;
+
+        text-align:center;
     }
 
     .camera-box{
 
-        height:300px;
+        height:320px;
     }
 
     .topbar{
@@ -772,6 +972,277 @@ body{
     .topbar-right{
 
         flex-wrap:wrap;
+
+        justify-content:center;
+    }
+}
+
+@media(max-width:640px){
+
+    .main-content{
+
+        padding:14px;
+    }
+
+    .topbar{
+
+        padding:16px;
+
+        margin-bottom:25px;
+    }
+
+    .topbar-left{
+
+        width:100%;
+
+        justify-content:center;
+
+        text-align:center;
+    }
+
+    .topbar-left h1{
+
+        font-size:20px;
+    }
+
+    .topbar-right{
+
+        width:100%;
+
+        gap:10px;
+    }
+
+    .datetime{
+
+        font-size:12px;
+
+        flex-wrap:wrap;
+
+        justify-content:center;
+
+        gap:6px;
+    }
+
+    .datetime span{
+
+        background:rgba(255,255,255,0.05);
+
+        border:1px solid rgba(255,255,255,0.08);
+
+        padding:4px 10px;
+
+        border-radius:10px;
+
+        white-space:nowrap;
+    }
+
+    .live-system{
+
+        padding:7px 12px;
+
+        font-size:12px;
+    }
+
+    .user-circle{
+
+        width:40px;
+
+        height:40px;
+
+        font-size:14px;
+    }
+
+    .logo-image{
+
+        width:48px;
+
+        height:48px;
+    }
+
+    .logo-title{
+
+        font-size:15px;
+    }
+
+    .logo-subtitle{
+
+        font-size:9px;
+    }
+
+    .cards-container{
+
+        gap:16px;
+
+        margin-bottom:28px;
+    }
+
+    .status-card{
+
+        padding:20px;
+    }
+
+    .status-card h3{
+
+        font-size:18px;
+    }
+
+    .status{
+
+        font-size:22px;
+    }
+
+    .camera-section{
+
+        padding:16px;
+    }
+
+    .section-header h2{
+
+        font-size:20px;
+    }
+
+    .camera-box{
+
+        height:auto;
+
+        object-fit:contain;
+    }
+
+    .card-actions{
+
+        flex-direction:column;
+    }
+
+    .card-btn{
+
+        width:100%;
+
+        min-width:100%;
+
+        padding:14px 12px;
+
+        font-size:15px;
+    }
+}
+
+@media(max-width:400px){
+
+    .main-content{
+
+        padding:10px;
+    }
+
+    .topbar{
+
+        padding:14px;
+
+        margin-bottom:20px;
+
+        border-radius:14px;
+    }
+
+    .topbar-left h1{
+
+        font-size:17px;
+    }
+
+    .logo-image{
+
+        width:42px;
+
+        height:42px;
+    }
+
+    .logo-title{
+
+        font-size:14px;
+    }
+
+    .logo-subtitle{
+
+        font-size:8px;
+
+        letter-spacing:1px;
+    }
+
+    .logo-container{
+
+        padding:6px 16px 8px 16px;
+    }
+
+    .menu ul li a{
+
+        font-size:14px;
+
+        padding:9px 14px;
+    }
+
+    .cards-container{
+
+        gap:12px;
+
+        margin-bottom:22px;
+    }
+
+    .status-card{
+
+        padding:16px;
+
+        border-radius:14px;
+    }
+
+    .status-card h3{
+
+        font-size:17px;
+    }
+
+    .status{
+
+        font-size:21px;
+
+        padding-top:12px;
+    }
+
+    .camera-section{
+
+        padding:14px;
+
+        border-radius:16px;
+    }
+
+    .section-header h2{
+
+        font-size:18px;
+    }
+
+    .live-system{
+
+        font-size:11px;
+
+        padding:6px 10px;
+    }
+
+    .datetime span{
+
+        font-size:11px;
+
+        padding:3px 8px;
+    }
+
+    .user-circle{
+
+        width:36px;
+
+        height:36px;
+
+        font-size:13px;
+    }
+
+    .card-btn{
+
+        padding:13px 12px;
+
+        font-size:14px;
     }
 }
 

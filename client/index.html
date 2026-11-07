@@ -8,9 +8,6 @@
 
     <title>Bridge Arcson Security</title>
 
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <!-- CSS -->
     <link rel="stylesheet" href="css/style.css">
 
@@ -21,25 +18,20 @@
 <body>
 
     <!-- SIDEBAR -->
+
     <aside class="sidebar">
 
         <!-- LOGO -->
 
         <div class="logo-container">
 
-            <img src="src/Logos/LogoBridgeArcson.png" 
-                 alt="Bridge Arcson Logo"
-                 class="logo-image">
+            <img class="logo-image" src="src/Logos/LogoBridgeArcson.png" alt="Logo Bridge Arcson Security">
 
             <div class="logo-text">
 
-                <h2 class="logo-title">
-                    BRIDGE ARCSON
-                </h2>
+                <h2 class="logo-title">Bridge Arcson</h2>
 
-                <p class="logo-subtitle">
-                    SECURITY SYSTEM
-                </p>
+                <span class="logo-subtitle">SECURITY SYSTEMS</span>
 
             </div>
 
@@ -47,33 +39,37 @@
 
         <!-- MENU -->
 
-        <nav class="menu">
-
-            <!-- MONITOREO -->
+        <nav class="menu" aria-label="Navegacion principal">
 
             <div class="menu-category">
-                MONITOREO
+                Monitoreo
             </div>
 
             <ul>
 
                 <li>
-                    <a href="#" class="active">
-                        <svg class="menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        Panel de control
-                    </a>
+                    <a href="#card-cerrojo">Cerrojo</a>
                 </li>
+
+                <li>
+                    <a href="#card-sensor">Sensor de Movimiento</a>
+                </li>
+
+                <li>
+                    <a href="#camaras">Cámara</a>
+                </li>
+
             </ul>
+
         </nav>
+
         <!-- FOOTER -->
 
         <div class="sidebar-footer">
-            © 2026 Bridge Arcson
+            Bridge Arcson Security © 2026
         </div>
 
     </aside>
-
-    <!-- CONTENIDO -->
 
     <main class="main-content">
 
@@ -127,19 +123,6 @@
 
         <section class="cards-container">
 
-            <div class="status-card" id="card-sensor">
-
-                <h3>
-                    Estado del Sensor PIR
-                </h3>
-
-                <p class="status danger-status" id="status-sensor">
-                    Desactivado
-                </p>
-
-
-            </div>
-
             <div class="status-card" id="card-cerrojo">
 
                 <h3>
@@ -149,6 +132,32 @@
                 <p class="status danger-status" id="status-cerrojo">
                     Abierto
                 </p>
+
+                <div class="card-actions">
+
+                    <button type="button" class="card-btn card-btn-close" id="btn-cerrar">
+                        Cerrar puerta
+                    </button>
+
+                    <button type="button" class="card-btn card-btn-open" id="btn-abrir">
+                        Abrir puerta
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="status-card" id="card-sensor">
+
+                <h3>
+                    Estado del Sensor de Movimiento
+                </h3>
+
+                <p class="status danger-status" id="status-sensor">
+                    Desactivado
+                </p>
+
+                <div class="card-spacer"></div>
 
             </div>
 
@@ -178,13 +187,9 @@
                     Cámara Principal
                 </h2>
 
-                <span class="live-badge">
-                    EN VIVO
-                </span>
-
             </div>
 
-            <img class="camera-box" alt="STREAM DE VIDEO" src="http://192.168.0.23:3000/camera/stream" crossorigin>
+            <img class="camera-box" alt="STREAM DE VIDEO" src="/camera/stream" crossorigin>
 
             </img>
 
@@ -193,12 +198,12 @@
     </main>
 
     <!-- SOCKET.IO -->
-    <script src="http://192.168.0.23:3000/socket.io/socket.io.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
     <!-- SCRIPT FECHA Y HORA -->
 
     <script type="module">
-        const socket = io("ws://192.168.0.23:3000");
+        const socket = io();
 
         socket.on("connect",()=>{
             const conexion =document.getElementById('conexion');
@@ -217,29 +222,23 @@
 
         socket.on("movimiento",(msg)=>{
             const status = document.getElementById('status-sensor');
-            const label = document.getElementById('label-sensor');
             if(msg == 'ON'){
                 status.textContent = 'Activado';
                 status.className = 'status active-status';
-                label.textContent = 'Activado';
             } else {
                 status.textContent = 'Desactivado';
                 status.className = 'status danger-status';
-                label.textContent = 'Desactivado';
             }
         });
 
         socket.on("cerrojo",(msg)=>{
             const status = document.getElementById('status-cerrojo');
-            const label = document.getElementById('label-cerrojo');
             if(msg == 'ON'){
                 status.textContent = 'Cerrado';
                 status.className = 'status active-status';
-                label.textContent = 'Cerrado';
             } else {
                 status.textContent = 'Abierto';
                 status.className = 'status danger-status';
-                label.textContent = 'Abierto';
             }
         });
 
@@ -269,36 +268,19 @@
 
         updateClock();
 
-        // TOGGLE SENSOR
-        document.getElementById('toggle-sensor').addEventListener('change', function(){
-            const status = document.getElementById('status-sensor');
-            const label = document.getElementById('label-sensor');
-            if(this.checked){
-                status.textContent = 'Activado';
-                status.className = 'status active-status';
-                label.textContent = 'Activado';
-            } else {
-                status.textContent = 'Desactivado';
-                status.className = 'status danger-status';
-                label.textContent = 'Desactivado';
-            }
+        // ABRIR / CERRAR PUERTA
+        document.getElementById('btn-cerrar').addEventListener('click', function(){
+            const status = document.getElementById('status-cerrojo');
+            status.textContent = 'Cerrado';
+            status.className = 'status active-status';
+            socket.emit('cerrar', true);
         });
 
-        // TOGGLE CERROJO
-        document.getElementById('toggle-cerrojo').addEventListener('change', function(){
+        document.getElementById('btn-abrir').addEventListener('click', function(){
             const status = document.getElementById('status-cerrojo');
-            const label = document.getElementById('label-cerrojo');
-            if(this.checked){
-                status.textContent = 'Cerrado';
-                status.className = 'status active-status';
-                label.textContent = 'Cerrado';
-                socket.emit('cerrar', true);
-            } else {
-                status.textContent = 'Abierto';
-                status.className = 'status danger-status';
-                label.textContent = 'Abierto';
-                socket.emit('abrir', true);
-            }
+            status.textContent = 'Abierto';
+            status.className = 'status danger-status';
+            socket.emit('abrir', true);
         });
 
     </script>

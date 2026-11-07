@@ -10,11 +10,13 @@
   "author": "",
   "license": "ISC",
   "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "mqtt": "^5.15.1",
-    "mysql2": "^3.23.3",
     "socket.io": "^4.8.3"
   }
 }
