@@ -1,13 +1,31 @@
 import express from 'express'
 import { Server } from 'socket.io'
 import { createServer } from 'http'
-import { createServer as createHttpsServer } from 'https'
-import { readFileSync, existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import mqtt from 'mqtt'
 import { DatabaseSync } from 'node:sqlite'
 import dgram from 'dgram'
+import { spawn } from 'child_process'
+import { networkInterfaces } from 'os'
+
+const LOG_COLORS = { cámara: 36, mqtt: 35, web: 34, websocket: 94, sensor: 33, cerrojo: 32, cloudflare: '38;5;208' }
+function log(tag, message, level = 'log') {
+    const color = LOG_COLORS[tag.toLowerCase()] || 37
+    const useColor = process.stdout.isTTY && !process.env.NO_COLOR
+    const messageColor = level === 'error' ? 31 : level === 'warn' ? 33 : color
+    const label = useColor ? `\x1b[${messageColor}m[${tag}]\x1b[0m` : `[${tag}]`
+    const coloredMessage = useColor ? `\x1b[${messageColor}m${message}\x1b[0m` : message
+    console[level](`${label} ${coloredMessage}`)
+}
+
+process.on('warning', (warning) => {
+    // SQLite's bundled Node API is experimental in this Node release; keep the
+    // startup console clean while still surfacing any unrelated warnings.
+    if (warning.name === 'ExperimentalWarning' && /sqlite/i.test(warning.message)) return
+    log('Node', warning.stack || warning.message, 'warn')
+})
 
 const port = 2000
 const app = express()
@@ -49,7 +67,7 @@ function trackFrames() {
     clearTimeout(frameTimer);
     frameTimer = setTimeout(() => {
         if (frameLostLogged) return;
-        console.log("frame perdido");
+        log('Cámara', 'Se interrumpió la recepción de frames.');
         frameLostLogged = true;
     }, FRAME_TIMEOUT_MS);
 }
@@ -60,7 +78,7 @@ function broadcastFrame(jpegBuffer) {
 
     if (frameLostLogged) {
         frameLostLogged = false;
-        console.log("conexion restablecida con ESP32");
+        log('Cámara', 'Se restableció la recepción desde el ESP32.');
     }
 
     trackFrames();
@@ -272,7 +290,7 @@ const framesInProgress = new Map();
 let lastShownFrameId = null;
 let lastPacketTime = 0;
 
-// estadísticas para diagnóstico (se imprimen cada 5 s)
+// Contadores internos de recepción; el resumen periódico solo muestra métricas de frames.
 const stats = {
     packetsReceived: 0,
     packetsAccepted: 0,
@@ -286,11 +304,16 @@ const stats = {
     framesEvicted: 0,
     decodeErrors: 0,
     invalidJpegs: 0,
+    framesLost: 0,
     reassemblyMsTotal: 0,
     reassemblyMsMax: 0
 };
-setInterval(() => {
-    console.log(`[UDP] rx=${stats.packetsReceived} aceptados=${stats.packetsAccepted} invalidos=${stats.invalidPackets} crcErr=${stats.crcErrors} duplicados=${stats.duplicatePackets} | framesOK=${stats.framesOk} FEC=${stats.framesRecovered} fragmentosDatosRecuperados=${stats.dataShardsRecovered} timeout=${stats.framesTimedOut} eviction=${stats.framesEvicted} decodeErr=${stats.decodeErrors} jpegInvalido=${stats.invalidJpegs} | reassembly=${stats.framesOk ? (stats.reassemblyMsTotal / stats.framesOk).toFixed(1) : '0.0'}ms promedio/${stats.reassemblyMsMax}ms max | enCurso=${framesInProgress.size}`);
+let cameraStatsStartedAt = Date.now();
+const cameraStatsInterval = setInterval(() => {
+    const elapsedSeconds = (Date.now() - cameraStatsStartedAt) / 1000;
+    const fps = elapsedSeconds > 0 ? (stats.framesOk / elapsedSeconds).toFixed(1) : '0.0';
+    log('Cámara', `FPS: ${fps} | Frames perdidos: ${stats.framesLost} | Frames recuperados (FEC): ${stats.framesRecovered}`);
+    cameraStatsStartedAt = Date.now();
     for (const key of Object.keys(stats)) stats[key] = 0;
 }, 5000);
 
@@ -301,14 +324,14 @@ udpServer.on('listening', () => {
     try {
         udpServer.setRecvBufferSize(4 * 1024 * 1024);
     } catch (e) {
-        console.warn('No se pudo ampliar el buffer UDP:', e.message);
+        log('Cámara', `No se pudo ampliar el buffer UDP: ${e.message}`, 'warn');
     }
     const address = udpServer.address();
-    console.log(`Servidor UDP (frames de cámara) escuchando en ${address.address}:${address.port}`);
+    log('Cámara', `Receptor UDP listo en ${address.address}:${address.port}`);
 });
 
 udpServer.on('error', (err) => {
-    console.error(`Error UDP:\n${err.stack}`);
+    log('Cámara', `Error en receptor UDP: ${err.message}`, 'error');
     udpServer.close();
 });
 
@@ -368,6 +391,10 @@ function finalizeFrame(frameKey, frameId) {
         return;
     }
 
+    if (lastShownFrameId !== null) {
+        const skippedFrames = (frameId - lastShownFrameId) >>> 0;
+        if (skippedFrames > 1 && skippedFrames < 0x80000000) stats.framesLost += skippedFrames - 1;
+    }
     lastShownFrameId = frameId;
     stats.framesOk++;
     const reassemblyMs = Date.now() - frame.startedAt;
@@ -494,7 +521,7 @@ udpServer.on('message', (msg, remote) => {
 });
 
 // limpieza de frames que nunca llegaron a kTotal paquetes (paquetes UDP perdidos)
-setInterval(() => {
+const frameCleanupInterval = setInterval(() => {
     const now = Date.now();
     for (const [frameId, frame] of framesInProgress) {
         if (now - frame.lastUpdate > UDP_FRAME_TIMEOUT_MS) {
@@ -555,19 +582,25 @@ app.get('/camera/snapshot', (req, res) => {
 
 // iniciando mqtt y websocket
 clientmqtt.on("connect", () => {
+    log('MQTT', 'Conexión establecida con el broker mqtt://localhost:1883.')
     clientmqtt.subscribe([
         'sensor/movimiento',
         'actuador/cerrojo',
         'sensor/cerrojo'
-    ])
-    console.log("Conectado a MQTT");
-    console.log("subcriptos los topicos correctamente");
+    ], (error) => {
+        if (error) log('MQTT', `No se pudieron suscribir los tópicos: ${error.message}`, 'error')
+        else log('MQTT', 'Suscrito a sensor/movimiento, actuador/cerrojo y sensor/cerrojo.')
+    })
 });
+clientmqtt.on('reconnect', () => log('MQTT', 'Se perdió la conexión; intentando reconectar con el broker.', 'warn'))
+clientmqtt.on('offline', () => log('MQTT', 'Broker desconectado; los comandos no llegarán al ESP32 hasta reconectar.', 'warn'))
+clientmqtt.on('error', (error) => log('MQTT', `Error de conexión: ${error.message}`, 'error'))
 
 // recibiendo mensajes en MQTT
 clientmqtt.on("message", async (topic, msg) => {
     if (topic == "sensor/movimiento") {
         let estado = msg.toString();
+        log('Sensor', `Movimiento: ${estado === 'ON' ? 'detectado' : 'sin movimiento'}.`)
         socketServers.forEach((socketServer) => socketServer.emit('movimiento', estado))
         if (estado == "ON") {
             updateSensorState.run(1, 'movimiento')
@@ -576,6 +609,7 @@ clientmqtt.on("message", async (topic, msg) => {
         }
     } else if (topic == "sensor/cerrojo") {
         let estado = msg.toString()
+        log('Cerrojo', `Estado informado por el ESP32: ${estado === 'ON' ? 'cerrado' : 'abierto'}.`)
         socketServers.forEach((socketServer) => socketServer.emit('cerrojo', estado))
         if (estado == "ON") {
             updateSensorState.run(1, 'cerrojo')
@@ -598,43 +632,115 @@ function handleSocketConnection(socket) {
         }
     })
     socket.on('cerrar', () => {
-        clientmqtt.publish('sensor/cerrojo', "ON")
+        clientmqtt.publish('actuador/cerrojo', 'CERRAR', (error) => {
+            if (error) log('Cerrojo', `No se pudo enviar el comando CERRAR: ${error.message}`, 'error')
+            else log('Cerrojo', 'Comando CERRAR enviado al ESP32 por MQTT.')
+        })
     })
     socket.on('abrir', () => {
-        clientmqtt.publish('sensor/cerrojo', "OFF")
+        clientmqtt.publish('actuador/cerrojo', 'ABRIR', (error) => {
+            if (error) log('Cerrojo', `No se pudo enviar el comando ABRIR: ${error.message}`, 'error')
+            else log('Cerrojo', 'Comando ABRIR enviado al ESP32 por MQTT.')
+        })
     })
 }
 
 io.on('connection', handleSocketConnection)
 
-// Publica la misma interfaz en HTTP y, cuando hay certificado configurado, HTTPS.
+// Publica la interfaz web por HTTP.
 const httpPort = Number(process.env.HTTP_PORT) || 80
-const httpsPort = Number(process.env.HTTPS_PORT) || 443
 const httpWebServer = createServer(app)
 const httpIo = new Server(httpWebServer, { cors: { origin: '*' } })
 socketServers.push(httpIo)
 httpIo.on('connection', handleSocketConnection)
-httpWebServer.listen(httpPort, () => {
-    console.log(`Pagina web HTTP en http://localhost:${httpPort}`)
-})
+let cloudflaredProcess = null
 
-const tlsKeyPath = process.env.TLS_KEY_PATH
-const tlsCertPath = process.env.TLS_CERT_PATH
-if (tlsKeyPath && tlsCertPath && existsSync(tlsKeyPath) && existsSync(tlsCertPath)) {
-    const httpsWebServer = createHttpsServer({
-        key: readFileSync(tlsKeyPath),
-        cert: readFileSync(tlsCertPath)
-    }, app)
-    const secureIo = new Server(httpsWebServer, { cors: { origin: '*' } })
-    socketServers.push(secureIo)
-    secureIo.on('connection', handleSocketConnection)
-    httpsWebServer.listen(httpsPort, () => {
-        console.log(`Pagina web HTTPS en https://localhost:${httpsPort}`)
+function startCloudflareTunnel() {
+    const cloudflaredBin = 'cloudflared' // Se resuelve desde PATH para que el proyecto sea portable.
+    const localUrl = `http://127.0.0.1:${httpPort}`
+    const args = ['tunnel', '--no-autoupdate', '--url', localUrl]
+    log('Cloudflare', `Iniciando Quick Tunnel hacia ${localUrl}...`)
+    cloudflaredProcess = spawn(cloudflaredBin, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
+
+    let output = ''
+    const reportOutput = (chunk) => {
+        const line = chunk.toString()
+        output = (output + line).slice(-12000)
+        const url = output.match(/https:\/\/[-a-z0-9]+\.trycloudflare\.com/i)
+        if (url) {
+            log('Cloudflare', `Túnel Quick listo: ${url[0]}`)
+            output = ''
+        }
+    }
+    cloudflaredProcess.stdout.on('data', reportOutput)
+    cloudflaredProcess.stderr.on('data', reportOutput)
+    cloudflaredProcess.on('error', (error) => {
+        log('Cloudflare', `No se pudo iniciar cloudflared (${cloudflaredBin}): ${error.message}`, 'error')
     })
-} else {
-    console.warn('HTTPS no iniciado: configura TLS_KEY_PATH y TLS_CERT_PATH con tu clave y certificado TLS.')
+    cloudflaredProcess.on('exit', (code, signal) => {
+        cloudflaredProcess = null
+        if (code !== 0 && code !== null) log('Cloudflare', `El túnel terminó con código ${code}.`, 'error')
+        else if (signal) log('Cloudflare', `El túnel se detuvo (señal ${signal}).`, 'warn')
+    })
 }
 
+httpWebServer.listen(httpPort, () => {
+    log('Web', `Panel disponible en http://localhost:${httpPort}.`)
+    const localAddresses = Object.values(networkInterfaces()).flat()
+        .filter((address) => address && address.family === 'IPv4' && !address.internal)
+        .map((address) => address.address)
+    for (const address of localAddresses) {
+        log('Web', `IP local: http://${address}:${httpPort}`)
+    }
+    startCloudflareTunnel()
+})
+
+let isShuttingDown = false
+async function shutdown(signal) {
+    if (isShuttingDown) return
+    isShuttingDown = true
+    log('Web', `Recibida señal ${signal}; cerrando servicios...`, 'warn')
+    clearInterval(cameraStatsInterval)
+    clearInterval(frameCleanupInterval)
+    clearTimeout(frameTimer)
+
+    const closeServer = (ioServer) => new Promise((resolveClose) => {
+        try { ioServer.close(() => resolveClose()) } catch { resolveClose() }
+    })
+    const closeUdp = new Promise((resolveClose) => {
+        try {
+            if (!udpServer.address()) return resolveClose()
+            udpServer.close(() => resolveClose())
+        } catch { resolveClose() }
+    })
+    const closeMqtt = new Promise((resolveClose) => {
+        try { clientmqtt.end(true, () => resolveClose()) } catch { resolveClose() }
+    })
+    const closeTunnel = new Promise((resolveClose) => {
+        const child = cloudflaredProcess
+        if (!child || child.exitCode !== null) return resolveClose()
+        child.once('exit', resolveClose)
+        child.kill()
+    })
+    const forceExitTimer = setTimeout(() => {
+        log('Web', 'Se agotó el tiempo de cierre; terminando el proceso.', 'error')
+        process.exit(1)
+    }, 5000)
+
+    await Promise.allSettled([
+        closeServer(io),
+        closeServer(httpIo),
+        closeUdp,
+        closeMqtt,
+        closeTunnel
+    ])
+    clearTimeout(forceExitTimer)
+    log('Web', 'Servidor, MQTT, UDP y túnel detenidos.')
+    process.exit(0)
+}
+process.on('SIGINT', () => shutdown('Ctrl+C'))
+process.on('SIGTERM', () => shutdown('SIGTERM'))
+
 server.listen(port, () => {
-    console.log(`server on port ${port}`)
+    log('WebSocket', `Servicio local listo en http://localhost:${port}.`)
 })

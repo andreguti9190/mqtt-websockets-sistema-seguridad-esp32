@@ -131,7 +131,6 @@ bool gfInvertMatrix(uint8_t *m, uint8_t *inv, int size)
             inv[i * size + j] = (i == j) ? 1 : 0;
         }
     }
-
     for (int col = 0; col < size; col++) {
         int pivotRow = -1;
 
