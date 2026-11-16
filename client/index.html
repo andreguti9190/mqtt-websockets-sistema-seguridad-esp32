@@ -269,19 +269,46 @@
 
         updateClock();
 
-        // ABRIR / CERRAR PUERTA
-        document.getElementById('btn-cerrar').addEventListener('click', function(){
+        // ABRIR / CERRAR PUERTA. El bloqueo evita ordenes repetidas por doble
+        // clic o por latencia al usar el panel a traves del tunel.
+        const closeButton = document.getElementById('btn-cerrar');
+        const openButton = document.getElementById('btn-abrir');
+        let lockCommandPending = false;
+
+        function sendLockCommand(eventName, optimisticText, optimisticClass) {
+            if (lockCommandPending) return;
+            lockCommandPending = true;
+            closeButton.disabled = true;
+            openButton.disabled = true;
+
             const status = document.getElementById('status-cerrojo');
-            status.textContent = 'Cerrado';
-            status.className = 'status active-status';
-            socket.emit('cerrar', true);
+            status.textContent = optimisticText;
+            status.className = optimisticClass;
+
+            let released = false;
+            const releaseButtons = () => {
+                if (released) return;
+                released = true;
+                lockCommandPending = false;
+                closeButton.disabled = false;
+                openButton.disabled = false;
+            };
+
+            socket.timeout(2500).emit(eventName, (error, response) => {
+                if (error || !response || !response.ok) {
+                    console.warn('No se pudo confirmar el comando del cerrojo.', error || response);
+                }
+                setTimeout(releaseButtons, 500);
+            });
+            setTimeout(releaseButtons, 3000);
+        }
+
+        closeButton.addEventListener('click', function(){
+            sendLockCommand('cerrar', 'Cerrado', 'status active-status');
         });
 
-        document.getElementById('btn-abrir').addEventListener('click', function(){
-            const status = document.getElementById('status-cerrojo');
-            status.textContent = 'Abierto';
-            status.className = 'status danger-status';
-            socket.emit('abrir', true);
+        openButton.addEventListener('click', function(){
+            sendLockCommand('abrir', 'Abierto', 'status danger-status');
         });
 
     </script>

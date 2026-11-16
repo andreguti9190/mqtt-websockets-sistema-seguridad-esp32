@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning server/server.js"
+    "start": "node --disable-warning=ExperimentalWarning server/server.js",
+    "start:tunnel": "node --disable-warning=ExperimentalWarning server/server.js --tunnel",
+    "broker": "\"C:\\Program Files\\Mosquitto\\mosquitto.exe\" -c mosquitto.conf -v"
   },
   "keywords": [],
   "author": "",

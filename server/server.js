@@ -1,7 +1,7 @@
 import express from 'express'
 import { Server } from 'socket.io'
 import { createServer } from 'http'
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import mqtt from 'mqtt'
@@ -36,6 +36,7 @@ app.use(express.static(clientDirectory))
 
 const dataDirectory = resolve(here, '../data')
 mkdirSync(dataDirectory, { recursive: true })
+const tunnelUrlFile = resolve(dataDirectory, 'tunnel-url.txt')
 const db = new DatabaseSync(resolve(dataDirectory, 'security.sqlite'))
 db.exec(`
     CREATE TABLE IF NOT EXISTS sensores (
@@ -585,11 +586,13 @@ clientmqtt.on("connect", () => {
     log('MQTT', 'Conexión establecida con el broker mqtt://localhost:1883.')
     clientmqtt.subscribe([
         'sensor/movimiento',
+        'sensor/movimiento/disponibilidad',
         'actuador/cerrojo',
-        'sensor/cerrojo'
+        'sensor/cerrojo',
+        'evento/cerrojo/rfid'
     ], (error) => {
         if (error) log('MQTT', `No se pudieron suscribir los tópicos: ${error.message}`, 'error')
-        else log('MQTT', 'Suscrito a sensor/movimiento, actuador/cerrojo y sensor/cerrojo.')
+        else log('MQTT', 'Suscrito a movimiento, disponibilidad, cerrojo y eventos RFID.')
     })
 });
 clientmqtt.on('reconnect', () => log('MQTT', 'Se perdió la conexión; intentando reconectar con el broker.', 'warn'))
@@ -607,6 +610,15 @@ clientmqtt.on("message", async (topic, msg) => {
         } else{
             updateSensorState.run(0, 'movimiento')
         }
+    } else if (topic == "sensor/movimiento/disponibilidad") {
+        const disponibilidad = msg.toString()
+        log('Sensor', `ESP32 de movimiento: ${disponibilidad}.`, disponibilidad === 'ONLINE' ? 'log' : 'warn')
+        if (disponibilidad !== 'ONLINE') {
+            updateSensorState.run(0, 'movimiento')
+            socketServers.forEach((socketServer) => socketServer.emit('movimiento', 'OFF'))
+        }
+    } else if (topic == "evento/cerrojo/rfid") {
+        log('Cerrojo', `RFID: ${msg.toString()}.`)
     } else if (topic == "sensor/cerrojo") {
         let estado = msg.toString()
         log('Cerrojo', `Estado informado por el ESP32: ${estado === 'ON' ? 'cerrado' : 'abierto'}.`)
@@ -619,7 +631,28 @@ clientmqtt.on("message", async (topic, msg) => {
     }
 });
 
+let lastLockCommandAt = 0
+
 function handleSocketConnection(socket) {
+    const publishLockCommand = (command, acknowledge) => {
+        const now = Date.now()
+        if (now - lastLockCommandAt < 750) {
+            if (typeof acknowledge === 'function') acknowledge({ ok: false, reason: 'demasiado-rapido' })
+            return
+        }
+        lastLockCommandAt = now
+
+        clientmqtt.publish('actuador/cerrojo', command, (error) => {
+            if (error) {
+                log('Cerrojo', `No se pudo enviar el comando ${command}: ${error.message}`, 'error')
+                if (typeof acknowledge === 'function') acknowledge({ ok: false, reason: 'mqtt' })
+            } else {
+                log('Cerrojo', `Comando ${command} enviado al ESP32 por MQTT.`)
+                if (typeof acknowledge === 'function') acknowledge({ ok: true })
+            }
+        })
+    }
+
     const sensors = db.prepare('SELECT nombre, estado FROM sensores').all()
     sensors.forEach((sensor)=>{
         if(sensor.nombre=="cerrojo"){
@@ -631,18 +664,8 @@ function handleSocketConnection(socket) {
             else{ socket.emit('movimiento', 'OFF') }
         }
     })
-    socket.on('cerrar', () => {
-        clientmqtt.publish('actuador/cerrojo', 'CERRAR', (error) => {
-            if (error) log('Cerrojo', `No se pudo enviar el comando CERRAR: ${error.message}`, 'error')
-            else log('Cerrojo', 'Comando CERRAR enviado al ESP32 por MQTT.')
-        })
-    })
-    socket.on('abrir', () => {
-        clientmqtt.publish('actuador/cerrojo', 'ABRIR', (error) => {
-            if (error) log('Cerrojo', `No se pudo enviar el comando ABRIR: ${error.message}`, 'error')
-            else log('Cerrojo', 'Comando ABRIR enviado al ESP32 por MQTT.')
-        })
-    })
+    socket.on('cerrar', (acknowledge) => publishLockCommand('CERRAR', acknowledge))
+    socket.on('abrir', (acknowledge) => publishLockCommand('ABRIR', acknowledge))
 }
 
 io.on('connection', handleSocketConnection)
@@ -654,11 +677,14 @@ const httpIo = new Server(httpWebServer, { cors: { origin: '*' } })
 socketServers.push(httpIo)
 httpIo.on('connection', handleSocketConnection)
 let cloudflaredProcess = null
+const tunnelEnabled = process.argv.includes('--tunnel') || process.env.ENABLE_TUNNEL === 'true'
 
 function startCloudflareTunnel() {
-    const cloudflaredBin = 'cloudflared' // Se resuelve desde PATH para que el proyecto sea portable.
+    const bundledCloudflared = resolve(here, '../cloudflared.exe')
+    const cloudflaredBin = existsSync(bundledCloudflared) ? bundledCloudflared : 'cloudflared'
     const localUrl = `http://127.0.0.1:${httpPort}`
     const args = ['tunnel', '--no-autoupdate', '--url', localUrl]
+    try { if (existsSync(tunnelUrlFile)) unlinkSync(tunnelUrlFile) } catch { }
     log('Cloudflare', `Iniciando Quick Tunnel hacia ${localUrl}...`)
     cloudflaredProcess = spawn(cloudflaredBin, args, { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
 
@@ -669,6 +695,9 @@ function startCloudflareTunnel() {
         const url = output.match(/https:\/\/[-a-z0-9]+\.trycloudflare\.com/i)
         if (url) {
             log('Cloudflare', `Túnel Quick listo: ${url[0]}`)
+            try { writeFileSync(tunnelUrlFile, url[0], 'utf8') } catch (error) {
+                log('Cloudflare', `No se pudo guardar la URL del túnel: ${error.message}`, 'warn')
+            }
             output = ''
         }
     }
@@ -692,7 +721,11 @@ httpWebServer.listen(httpPort, () => {
     for (const address of localAddresses) {
         log('Web', `IP local: http://${address}:${httpPort}`)
     }
-    startCloudflareTunnel()
+    if (tunnelEnabled) {
+        startCloudflareTunnel()
+    } else {
+        log('Cloudflare', 'Túnel público desactivado. Usa npm run start:tunnel para habilitarlo.')
+    }
 })
 
 let isShuttingDown = false
@@ -703,6 +736,7 @@ async function shutdown(signal) {
     clearInterval(cameraStatsInterval)
     clearInterval(frameCleanupInterval)
     clearTimeout(frameTimer)
+    try { if (existsSync(tunnelUrlFile)) unlinkSync(tunnelUrlFile) } catch { }
 
     const closeServer = (ioServer) => new Promise((resolveClose) => {
         try { ioServer.close(() => resolveClose()) } catch { resolveClose() }
